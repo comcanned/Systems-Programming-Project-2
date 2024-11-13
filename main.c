@@ -1,50 +1,50 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "assembler.h"
 
-int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        printf("Usage: %s <filename> [--pass1only]\n", argv[0]);
-        return 1;
+Symbol symbolTable[MAX_SYMBOLS];
+int symbolCount = 0;
+
+// Insert a symbol into the symbol table
+int insert_symbol(const char* label, int address, int line_num) {
+    // Check for duplicate symbol
+    if (search_symbol(label) != -1) {
+        printf("ASSEMBLY ERROR: Duplicate symbol '%s' at line %d\n", label, line_num);
+        return 0;  // Return failure due to duplicate symbol
     }
 
-    const char* filename = argv[1];
-    int pass1_only = (argc == 3 && strcmp(argv[2], "--pass1only") == 0);
-
-    // Open the input file for reading
-    FILE* inputFile = fopen(filename, "r");
-    if (!inputFile) {
-        printf("Error: Could not open file %s\n", filename);
-        return 1;
+    // Check for symbol table overflow
+    if (symbolCount >= MAX_SYMBOLS) {
+        printf("ASSEMBLY ERROR: Symbol table overflow at line %d\n", line_num);
+        exit(1);  // Exit due to exceeding symbol table size
     }
 
-    int LOCCTR = 0;
-
-    // Run Pass 1: Generate Symbol Table
-   if (!pass1_generate_symbol_table(inputFile, &LOCCTR)) {
-    printf("Assembly error detected in Pass 1. Object file was not created.\n");
-    fclose(inputFile);
-    return 1;
+    // Insert symbol into the symbol table
+    strncpy(symbolTable[symbolCount].label, label, sizeof(symbolTable[symbolCount].label) - 1);
+    symbolTable[symbolCount].label[sizeof(symbolTable[symbolCount].label) - 1] = '\0';  // Ensure null-terminated
+    symbolTable[symbolCount].address = address;
+    symbolCount++;
+    return 1;  // Return success
 }
 
-
-    // If only Pass 1 is requested, print the symbol table and exit
-    if (pass1_only) {
-        print_symbol_table();
-        fclose(inputFile);
-        return 0;
+// Search for a symbol in the symbol table by label
+int search_symbol(const char* label) {
+    for (int i = 0; i < symbolCount; i++) {
+        if (strcmp(symbolTable[i].label, label) == 0) {
+            return symbolTable[i].address;
+        }
     }
-
-    // Run Pass 2: Generate Object Code
-   if (!pass2_generate_object_code(inputFile, LOCCTR, filename)) {
-    printf("Assembly error detected in Pass 2. Object file was not created.\n");
-    fclose(inputFile);
-    return 1;
+    return -1;  // Return -1 if symbol not found
 }
 
+// Retrieve the address of a symbol in the symbol table
+int get_symbol_address(const char* label) {
+    return search_symbol(label);  // Uses search_symbol to find address
+}
 
-    // Close the input file after both passes are complete
-    fclose(inputFile);
-    return 0;
+// Print the contents of the symbol table (used for --pass1only option)
+void print_symbol_table() {
+    printf("Symbol Table:\n");
+    printf("Label      Address\n");
+    for (int i = 0; i < symbolCount; i++) {
+        printf("%-10s %04X\n", symbolTable[i].label, symbolTable[i].address);
+    }
 }
