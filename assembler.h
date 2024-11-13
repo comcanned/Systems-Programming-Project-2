@@ -6,48 +6,43 @@
 #include <string.h>
 #include <ctype.h>
 
-// Define maximum sizes
-#define MAX_SYMBOLS 100
 #define MAX_LINE_LENGTH 100
+#define MAX_SYMBOLS 100
 
-// Symbol table structure
+// Structure for storing symbols in the symbol table
 typedef struct {
-    char symbol[10];  // Symbol name
-    int address;      // Address in hexadecimal
+    char label[10];
+    int address;
 } Symbol;
 
-// Global symbol table and counter
+// External symbol table and counter for symbol management
 extern Symbol symbolTable[MAX_SYMBOLS];
 extern int symbolCount;
 
-// Function prototypes
+// Function prototypes for assembler passes (updated to return int)
+int pass1_generate_symbol_table(FILE* inputFile, int* LOCCTR);
+int pass2_generate_object_code(FILE* inputFile, int LOCCTR, const char* filename);
 
-// Pass 1: Generate Symbol Table
-void pass1_generate_symbol_table(FILE* inputFile, int* LOCCTR);
+// Function prototypes for processing lines and generating object code
+int parse_line(char* line, int* LOCCTR, int line_num);  // Ensure parse_line also returns int
+int generate_object_code(const char* line, int line_num, FILE* objectFile);  // Ensure int return
 
-// Pass 2: Generate Object Code
-void pass2_generate_object_code(FILE* inputFile, int LOCCTR, const char* filename);
-
-// Line parsing and handling functions
-void parse_line(char* line, int* LOCCTR, int line_num);
+// Other function prototypes remain unchanged
 void handle_directive(const char* opcode, const char* operand, int* LOCCTR, int line_num);
-
-// Object code generation
-void generate_object_code(const char* line, int line_num, FILE* objectFile);
 void generate_data_code(const char* opcode, const char* operand, FILE* objectFile);
 
-// Opcode helper functions
+// Utility function prototypes
 int get_opcode_value(const char* opcode);
 int is_opcode(const char* opcode);
 int is_directive(const char* word);
-
-// Utility functions
 int calculate_byte_size(const char* operand);
 void trim_whitespace(char* str);
 int strcasecmp(const char* s1, const char* s2);
 
-// Opcode & Directive tables
-extern char* opcodes[];
-extern char* directives[];
+// Symbol table function prototypes
+int insert_symbol(const char* label, int address, int line_num);
+int search_symbol(const char* label);
+void print_symbol_table();
+int get_symbol_address(const char* label);
 
 #endif // ASSEMBLER_H
