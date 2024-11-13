@@ -1,62 +1,50 @@
 #include "assembler.h"
 
-// Define and initialize the symbol table and counter
 Symbol symbolTable[MAX_SYMBOLS];
 int symbolCount = 0;
 
-// Function to insert a symbol into the symbol table
-void insert_symbol(char* label, int LOCCTR, int line_num) {
+// Insert a symbol into the symbol table
+int insert_symbol(const char* label, int address, int line_num) {
+    // Check for duplicate symbol
+    if (search_symbol(label) != -1) {
+        printf("ASSEMBLY ERROR: Duplicate symbol '%s' at line %d\n", label, line_num);
+        return 0;  // Return failure due to duplicate symbol
+    }
+
     // Check for symbol table overflow
     if (symbolCount >= MAX_SYMBOLS) {
-        printf("ASSEMBLY ERROR:\n");
-        printf("Line %d: Symbol table overflow\n", line_num);
-        exit(1);
+        printf("ASSEMBLY ERROR: Symbol table overflow at line %d\n", line_num);
+        exit(1);  // Exit due to exceeding symbol table size
     }
 
-    // Check if symbol is already defined
-    if (search_symbol(label) != -1) {
-        printf("ASSEMBLY ERROR:\n");
-        printf("Line %d: Duplicate symbol '%s'\n", line_num, label);
-        exit(1);
-    }
-
-    // Insert the symbol into the table
-    strncpy(symbolTable[symbolCount].symbol, label, sizeof(symbolTable[symbolCount].symbol) - 1);
-    symbolTable[symbolCount].symbol[sizeof(symbolTable[symbolCount].symbol) - 1] = '\0'; // Ensure null-termination
-    symbolTable[symbolCount].address = LOCCTR;
+    // Insert symbol into the symbol table
+    strncpy(symbolTable[symbolCount].label, label, sizeof(symbolTable[symbolCount].label) - 1);
+    symbolTable[symbolCount].label[sizeof(symbolTable[symbolCount].label) - 1] = '\0';  // Ensure null-terminated
+    symbolTable[symbolCount].address = address;
     symbolCount++;
-
-    // Debug output
-    printf("Debug: Inserted symbol '%s' with address %04X at line %d\n", label, LOCCTR, line_num);
+    return 1;  // Return success
 }
 
-// Function to search for a symbol in the symbol table
-int search_symbol(char* label) {
+// Search for a symbol in the symbol table by label
+int search_symbol(const char* label) {
     for (int i = 0; i < symbolCount; i++) {
-        if (strcmp(symbolTable[i].symbol, label) == 0) {
-            return i;  // Return index if found
+        if (strcmp(symbolTable[i].label, label) == 0) {
+            return symbolTable[i].address;
         }
     }
-    return -1;  // Symbol not found
+    return -1;  // Return -1 if symbol not found
 }
 
-// Function to retrieve the address of a symbol (helper for object code generation)
-int get_symbol_address(char* label, int line_num) {
-    int index = search_symbol(label);
-    if (index == -1) {
-        printf("ASSEMBLY ERROR:\n");
-        printf("Line %d: Undefined symbol '%s'\n", line_num, label);
-        exit(1);
-    }
-    return symbolTable[index].address;
+// Retrieve the address of a symbol in the symbol table
+int get_symbol_address(const char* label) {
+    return search_symbol(label);  // Uses search_symbol to find address
 }
 
-// Function to print the symbol table (useful for --pass1only option)
+// Print the contents of the symbol table (used for --pass1only option)
 void print_symbol_table() {
-    printf("\nSymbol Table:\n");
-    printf("Symbol\tAddress\n");
-    printf("------\t-------\n");
+    printf("Symbol Table:\n");
+    printf("Label      Address\n");
     for (int i = 0; i < symbolCount; i++) {
-        printf("%-6s\t%04X\n", symbolTable[i].symbol, symbolTable[i].address);
+        printf("%-10s %04X\n", symbolTable[i].label, symbolTable[i].address);
     }
 }
